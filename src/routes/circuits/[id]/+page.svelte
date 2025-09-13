@@ -167,7 +167,10 @@
 				bind:edges={circuitState.edges}
 				{nodeTypes}
 				connectionMode={ConnectionMode.Loose}
-				defaultEdgeOptions={{ type: "step" }}
+				defaultEdgeOptions={{
+					type: "step",
+					style: "stroke: #000000; stroke-width: 3px;",
+				}}
 				connectionLineType={ConnectionLineType.Step}
 				snapGrid={[20, 20]}
 				fitView
@@ -195,3 +198,16 @@
 		</div>
 	</footer>
 {/if}
+
+<style>
+	/* Custom styling for SvelteFlow edges and connection lines */
+	:global(.svelte-flow__edge-path) {
+		stroke: #000000 !important;
+		stroke-width: 3px !important;
+	}
+
+	:global(.svelte-flow__connection-line) {
+		stroke: #000000 !important;
+		stroke-width: 3px !important;
+	}
+</style>
