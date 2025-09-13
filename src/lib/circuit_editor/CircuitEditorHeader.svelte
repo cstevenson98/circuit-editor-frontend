@@ -1,30 +1,31 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
+	import { goto } from "$app/navigation";
+	import { resolve } from "$app/paths";
 	import type {
 		ComponentType,
-		ComponentTypeLabel
-	} from '$lib/circuit_editor/CircuitEditorState.svelte.js';
+		ComponentTypeLabel,
+	} from "$lib/circuit_editor/CircuitEditorState.svelte";
 
 	type Props = {
-		networkName: string;
-		saveNetwork: () => void;
-		analyzeNetwork: () => void;
+		circuitName: string;
+		saveCircuit: () => void;
+		analyzeCircuit: () => void;
 		addComponent: (componentType: ComponentType) => void;
 	};
 
-	let { networkName, saveNetwork, analyzeNetwork, addComponent }: Props = $props();
+	let { circuitName, saveCircuit, analyzeCircuit, addComponent }: Props =
+		$props();
 
 	function goBack() {
-		goto(resolve('/'));
+		goto(resolve("/"));
 	}
 
 	// Component types for the toolbar
 	const componentTypes: ComponentTypeLabel[] = [
-		{ type: 'voltage', label: 'V', name: 'Voltage Source' },
-		{ type: 'resistor', label: 'R', name: 'Resistor' },
-		{ type: 'capacitor', label: 'C', name: 'Capacitor' },
-		{ type: 'inductor', label: 'L', name: 'Inductor' }
+		{ type: "voltage", label: "V", name: "Voltage Source" },
+		{ type: "resistor", label: "R", name: "Resistor" },
+		{ type: "capacitor", label: "C", name: "Capacitor" },
+		{ type: "inductor", label: "L", name: "Inductor" },
 	] as const;
 </script>
 
@@ -37,7 +38,12 @@
 					onclick={goBack}
 					class="flex items-center gap-2 text-gray-600 transition-colors hover:text-gray-900"
 				>
-					<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg
+						class="h-5 w-5"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"
@@ -48,7 +54,7 @@
 					Back
 				</button>
 				<h1 class="text-2xl font-bold tracking-tight text-gray-900">
-					Editing Network "{networkName}"
+					Editing Circuit "{circuitName}"
 				</h1>
 			</div>
 
@@ -57,13 +63,13 @@
 				<!-- Save and Analyze buttons -->
 				<div class="flex gap-2">
 					<button
-						onclick={saveNetwork}
+						onclick={saveCircuit}
 						class="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
 					>
 						Save
 					</button>
 					<button
-						onclick={analyzeNetwork}
+						onclick={analyzeCircuit}
 						class="rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
 					>
 						Analyze
