@@ -46,14 +46,13 @@
 			circuit = await apiClient.getCircuit(circuitId());
 			// Load flow data if it exists
 			if (
-				circuit.svelte_flow_model?.flow_data &&
-				circuit.svelte_flow_model.flow_data.nodes &&
-				circuit.svelte_flow_model.flow_data.edges
+				circuit.svelte_flow_model?.nodes &&
+				circuit.svelte_flow_model.edges
 			) {
 				circuitState.importCircuit({
-					nodes: circuit.svelte_flow_model.flow_data.nodes,
-					edges: circuit.svelte_flow_model.flow_data.edges,
-					metadata: circuit.svelte_flow_model.flow_data.metadata,
+					nodes: circuit.svelte_flow_model.nodes,
+					edges: circuit.svelte_flow_model.edges,
+					metadata: circuit.svelte_flow_model.metadata,
 				});
 			}
 		} catch (err) {
@@ -67,6 +66,7 @@
 
 	async function saveCircuit() {
 		if (!circuit) return;
+		console.log("Saving circuit:", circuit);
 
 		try {
 			saving = true;
@@ -75,9 +75,7 @@
 			console.log("Saving circuit:", circuitData);
 
 			// Update flow data via API
-			await apiClient.updateFlowData(circuit.id, {
-				flow_data: circuitData,
-			});
+			await apiClient.updateCircuitWithFlowData(circuit.id, circuitData);
 
 			alert("Circuit saved successfully!");
 		} catch (err) {

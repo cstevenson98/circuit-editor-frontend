@@ -11,34 +11,60 @@ export interface Circuit {
 	svelte_flow_model: SvelteFlowModel | null;
 }
 
-export interface SvelteFlowModel {
-	id: number;
-	flow_data: {
-		nodes?: any[];
-		edges?: any[];
-		viewport?: any;
-		[key: string]: any;
+export interface SvelteFlowNode {
+	id: string;
+	type: string;
+	position: {
+		x: number;
+		y: number;
 	};
-	created_at: string;
-	updated_at: string;
+	data: {
+		type: string;
+	};
+	measured: {
+		width: number;
+		height: number;
+	};
+	selected: boolean;
+	dragging: boolean;
+}
+
+export interface SvelteFlowEdge {
+	id: string;
+	source: string;
+	sourceHandle: string;
+	target: string;
+	targetHandle: string;
+}
+
+export interface SvelteFlowMetadata {
+	nodeCounter: number;
+	lastModified: string;
+}
+
+export interface SvelteFlowModel {
+	nodes: SvelteFlowNode[];
+	edges: SvelteFlowEdge[];
+	metadata: SvelteFlowMetadata;
 }
 
 export interface CreateCircuitRequest {
 	name: string;
 	description?: string;
+	svelte_flow_model?: {
+		nodes?: SvelteFlowNode[];
+		edges?: SvelteFlowEdge[];
+		metadata?: Partial<SvelteFlowMetadata>;
+	};
 }
 
 export interface UpdateCircuitRequest {
 	name?: string;
 	description?: string;
-}
-
-export interface UpdateFlowDataRequest {
-	flow_data: {
-		nodes?: any[];
-		edges?: any[];
-		viewport?: any;
-		[key: string]: any;
+	svelte_flow_model?: {
+		nodes?: SvelteFlowNode[];
+		edges?: SvelteFlowEdge[];
+		metadata?: Partial<SvelteFlowMetadata>;
 	};
 }
 
@@ -109,11 +135,17 @@ class ApiClient {
 		});
 	}
 
-	// SvelteFlow data operations
-	async updateFlowData(circuitId: number, data: UpdateFlowDataRequest): Promise<Circuit> {
-		return this.request<Circuit>(`/circuits/${circuitId}/flow_data/`, {
+	// Helper method to update circuit with flow data
+	async updateCircuitWithFlowData(id: number, flowData: {
+		nodes?: SvelteFlowNode[];
+		edges?: SvelteFlowEdge[];
+		metadata?: Partial<SvelteFlowMetadata>;
+	}): Promise<Circuit> {
+		return this.request<Circuit>(`/circuits/${id}/`, {
 			method: 'PATCH',
-			body: JSON.stringify(data),
+			body: JSON.stringify({
+				svelte_flow_model: flowData
+			}),
 		});
 	}
 }
