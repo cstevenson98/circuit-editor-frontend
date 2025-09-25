@@ -2,19 +2,15 @@
 	import { goto } from "$app/navigation";
 	import { resolve } from "$app/paths";
 	import type {
-		ComponentType,
 		ComponentTypeLabel,
+		CircuitEditorState,
 	} from "$lib/circuit_editor/CircuitEditorState.svelte";
 
 	type Props = {
-		circuitName: string;
-		saveCircuit: () => void;
-		analyzeCircuit: () => void;
-		addComponent: (componentType: ComponentType) => void;
+		circuitState: CircuitEditorState;
 	};
 
-	let { circuitName, saveCircuit, analyzeCircuit, addComponent }: Props =
-		$props();
+	let { circuitState }: Props = $props();
 
 	function goBack() {
 		goto(resolve("/"));
@@ -54,7 +50,8 @@
 					Back
 				</button>
 				<h1 class="text-2xl font-bold tracking-tight text-gray-900">
-					Editing Circuit "{circuitName}"
+					Editing Circuit "{circuitState.circuit?.name ||
+						"Unknown Circuit"}"
 				</h1>
 			</div>
 
@@ -63,13 +60,14 @@
 				<!-- Save and Analyze buttons -->
 				<div class="flex gap-2">
 					<button
-						onclick={saveCircuit}
-						class="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
+						onclick={() => circuitState.saveCircuit()}
+						disabled={circuitState.saving}
+						class="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
 					>
-						Save
+						{circuitState.saving ? "Saving..." : "Save"}
 					</button>
 					<button
-						onclick={analyzeCircuit}
+						onclick={() => circuitState.analyzeCircuit()}
 						class="rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
 					>
 						Analyze
@@ -80,7 +78,8 @@
 				<div class="ml-4 flex gap-2 border-l pl-4">
 					{#each componentTypes as component (component.type)}
 						<button
-							onclick={() => addComponent(component.type)}
+							onclick={() =>
+								circuitState.addComponent(component.type)}
 							class="flex h-10 w-10 items-center justify-center rounded-md border border-gray-300 bg-gray-100 font-bold text-gray-700 transition-colors hover:bg-gray-200"
 							title={component.name}
 						>

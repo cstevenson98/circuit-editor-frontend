@@ -1,10 +1,12 @@
 import type { Node, Edge } from '@xyflow/svelte';
 import type { components } from '../api/api-types.js';
+import { apiClient } from '../api/client.js';
 
 // Extract types from generated API types
 type SvelteFlowNode = components['schemas']['SvelteFlowNode'];
 type SvelteFlowEdge = components['schemas']['SvelteFlowEdge'];
 type SvelteFlowModel = components['schemas']['SvelteFlowModel'];
+type Circuit = components['schemas']['Circuit'];
 
 export type ComponentType = 'voltage' | 'resistor' | 'capacitor' | 'inductor';
 
@@ -28,6 +30,8 @@ export class CircuitEditorState {
 	private _nodes = $state.raw<CircuitNode[]>([]);
 	private _edges = $state.raw<Edge[]>([]);
 	private _gridSize = 20; // Match the background grid size
+	private _circuit: Circuit | null = null;
+	private _saving = $state(false);
 
 	constructor() {}
 
@@ -56,8 +60,8 @@ export class CircuitEditorState {
 		this._edges = value;
 	}
 
-	// Add a new component to the circuit
-	addComponent(
+	// Add a new component to the circuit (internal method)
+	private addComponentInternal(
 		componentType: ComponentType,
 		position: { x: number; y: number } = { x: 400, y: 300 },
 		label?: string
@@ -335,5 +339,82 @@ export class CircuitEditorState {
 			errors,
 			warnings
 		};
+	}
+
+	// === Circuit Management Methods ===
+
+	// Set the current circuit
+	setCircuit(circuit: Circuit): void {
+		this._circuit = circuit;
+	}
+
+	// Get the current circuit
+	get circuit(): Circuit | null {
+		return this._circuit;
+	}
+
+	// Get saving state
+	get saving(): boolean {
+		return this._saving;
+	}
+
+	// Add a component to the circuit (public interface)
+	addComponent(componentType: ComponentType): string {
+		const nodeId = this.addComponentInternal(componentType, { x: 400, y: 300 });
+		console.log(`Added ${componentType} component with ID: ${nodeId}`);
+		console.log("Circuit stats:", this.getCircuitStats());
+		return nodeId;
+	}
+
+	// Save the circuit to the API
+	async saveCircuit(): Promise<void> {
+		if (!this._circuit) {
+			throw new Error("No circuit loaded");
+		}
+
+		try {
+			this._saving = true;
+			// Export circuit data using the new API conversion method
+			const apiModel = this.exportToApi();
+			console.log("Saving circuit:", apiModel);
+
+			// Update flow data via API
+			await apiClient.updateCircuitWithFlowData(this._circuit.id, apiModel);
+
+			alert("Circuit saved successfully!");
+		} catch (err) {
+			console.error("Error saving circuit:", err);
+			alert("Failed to save circuit. Please try again.");
+			throw err;
+		} finally {
+			this._saving = false;
+		}
+	}
+
+	// Analyze the circuit
+	analyzeCircuit(): void {
+		if (!this._circuit) {
+			alert("No circuit loaded");
+			return;
+		}
+
+		// Validate circuit and send to analysis API
+		const validation = this.validateCircuit();
+		const circuitData = this.exportCircuit();
+
+		console.log("Circuit validation:", validation);
+		console.log("Analyzing circuit:", circuitData);
+
+		if (!validation.isValid) {
+			alert(`Circuit has errors: ${validation.errors.join(", ")}`);
+			return;
+		}
+
+		if (validation.warnings.length > 0) {
+			console.warn("Circuit warnings:", validation.warnings);
+		}
+
+		// TODO: Send to analysis API when available
+		alert("Circuit analysis started! (Analysis API not yet implemented)");
 	}
 }
