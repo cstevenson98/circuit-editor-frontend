@@ -1,4 +1,10 @@
 import type { Node, Edge } from '@xyflow/svelte';
+import type { components } from '../api/api-types.js';
+
+// Extract types from generated API types
+type SvelteFlowNode = components['schemas']['SvelteFlowNode'];
+type SvelteFlowEdge = components['schemas']['SvelteFlowEdge'];
+type SvelteFlowModel = components['schemas']['SvelteFlowModel'];
 
 export type ComponentType = 'voltage' | 'resistor' | 'capacitor' | 'inductor';
 
@@ -18,18 +24,18 @@ export interface CircuitNode extends Node {
 }
 
 export class CircuitEditorState {
-	private nodeCounter = 1;
+	private _nodeCounter = 1;
 	private _nodes = $state.raw<CircuitNode[]>([]);
 	private _edges = $state.raw<Edge[]>([]);
-	private gridSize = 20; // Match the background grid size
+	private _gridSize = 20; // Match the background grid size
 
 	constructor() {}
 
 	// Helper function to snap position to grid
 	private snapToGrid(position: { x: number; y: number }): { x: number; y: number } {
 		return {
-			x: Math.round(position.x / this.gridSize) * this.gridSize,
-			y: Math.round(position.y / this.gridSize) * this.gridSize
+			x: Math.round(position.x / this._gridSize) * this._gridSize,
+			y: Math.round(position.y / this._gridSize) * this._gridSize
 		};
 	}
 
@@ -50,22 +56,13 @@ export class CircuitEditorState {
 		this._edges = value;
 	}
 
-	// Getters for reactive access (keeping for backwards compatibility)
-	get getNodes(): CircuitNode[] {
-		return this._nodes;
-	}
-
-	get getEdges(): Edge[] {
-		return this._edges;
-	}
-
 	// Add a new component to the circuit
 	addComponent(
 		componentType: ComponentType,
 		position: { x: number; y: number } = { x: 400, y: 300 },
 		label?: string
 	): string {
-		const nodeId = `${componentType}-${this.nodeCounter++}`;
+		const nodeId = `${componentType}-${this._nodeCounter++}`;
 		
 		// Snap position to grid
 		const snappedPosition = this.snapToGrid(position);
@@ -105,7 +102,7 @@ export class CircuitEditorState {
 	}
 
 	// Add an edge between two nodes
-	addEdge(sourceId: string, targetId: string, edgeId?: string): string {
+	addEdge(sourceId: string, targetId: string, edgeId?: string, style?: string): string {
 		const id = edgeId || `e${sourceId}-${targetId}`;
 		
 		// Check if edge already exists
@@ -122,7 +119,9 @@ export class CircuitEditorState {
 			id,
 			source: sourceId,
 			target: targetId,
-			type: 'step'
+			type: 'step',
+			// Add style if provided, otherwise use default styling
+			style: style || 'stroke: #000000; stroke-width: 3px;'
 		};
 
 		this._edges = [...this._edges, newEdge];
@@ -176,7 +175,7 @@ export class CircuitEditorState {
 	clear(): void {
 		this._nodes = [];
 		this._edges = [];
-		this.nodeCounter = 1;
+		this._nodeCounter = 1;
 	}
 
 	// Get all nodes of a specific component type
@@ -217,7 +216,7 @@ export class CircuitEditorState {
 			nodes: this._nodes,
 			edges: this._edges,
 			metadata: {
-				nodeCounter: this.nodeCounter,
+				nodeCounter: this._nodeCounter,
 				lastModified: new Date().toISOString()
 			}
 		};
@@ -230,8 +229,80 @@ export class CircuitEditorState {
 		metadata?: { nodeCounter?: number };
 	}): void {
 		this._nodes = [...circuitData.nodes];
-		this._edges = [...circuitData.edges];
-		this.nodeCounter = circuitData.metadata?.nodeCounter || this._nodes.length + 1;
+		// Preserve edge styles from the backend API
+		this._edges = circuitData.edges.map(edge => ({
+			...edge,
+			// Ensure edges have the step type for proper rendering
+			type: edge.type || 'step',
+			// Preserve any style information from the API
+			style: edge.style || undefined
+		}));
+		this._nodeCounter = circuitData.metadata?.nodeCounter || this._nodes.length + 1;
+	}
+
+	// Convert API types to frontend types for import
+	importFromApi(apiModel: SvelteFlowModel): void {
+		const convertedNodes = apiModel.nodes.map((node: SvelteFlowNode) => ({
+			id: node.id,
+			type: "electrical" as const,
+			position: node.position,
+			data: {
+				type: node.data.type as ComponentType,
+			},
+			measured: node.measured,
+			selected: node.selected,
+			dragging: node.dragging,
+		}));
+
+		const convertedEdges = apiModel.edges.map((edge: SvelteFlowEdge) => ({
+			id: edge.id,
+			source: edge.source,
+			sourceHandle: edge.sourceHandle,
+			target: edge.target,
+			targetHandle: edge.targetHandle,
+			type: "step" as const,
+			style: edge.style || undefined,
+		}));
+
+		this.importCircuit({
+			nodes: convertedNodes,
+			edges: convertedEdges,
+			metadata: apiModel.metadata,
+		});
+	}
+
+	// Convert frontend types to API types for export
+	exportToApi(): SvelteFlowModel {
+		const apiNodes: SvelteFlowNode[] = this._nodes.map((node) => ({
+			id: node.id,
+			type: node.type || "electrical",
+			position: node.position,
+			data: node.data,
+			measured: {
+				width: node.measured?.width || 96,
+				height: node.measured?.height || 96,
+			},
+			selected: node.selected || false,
+			dragging: node.dragging || false,
+		}));
+
+		const apiEdges: SvelteFlowEdge[] = this._edges.map((edge) => ({
+			id: edge.id,
+			source: edge.source,
+			sourceHandle: edge.sourceHandle || "right",
+			target: edge.target,
+			targetHandle: edge.targetHandle || "left",
+			style: edge.style || null,
+		}));
+
+		return {
+			nodes: apiNodes,
+			edges: apiEdges,
+			metadata: {
+				nodeCounter: this._nodeCounter,
+				lastModified: new Date().toISOString(),
+			},
+		};
 	}
 
 	// Validate circuit (check for disconnected components, etc.)

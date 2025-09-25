@@ -2,71 +2,28 @@
  * API client for communicating with the Django backend
  */
 
-export interface Circuit {
-	id: number;
-	name: string;
-	description: string;
-	created_at: string;
-	updated_at: string;
-	svelte_flow_model: SvelteFlowModel | null;
-}
+import type { components, operations } from './api-types.js';
 
-export interface SvelteFlowNode {
-	id: string;
-	type: string;
-	position: {
-		x: number;
-		y: number;
-	};
-	data: {
-		type: string;
-	};
-	measured: {
-		width: number;
-		height: number;
-	};
-	selected: boolean;
-	dragging: boolean;
-}
+// Extract types from generated API types
+export type Circuit = components['schemas']['Circuit'];
+export type CircuitRequest = components['schemas']['CircuitRequest'];
+export type PatchedCircuitRequest = components['schemas']['PatchedCircuitRequest'];
+export type PaginatedCircuitList = components['schemas']['PaginatedCircuitList'];
+export type SvelteFlowModel = components['schemas']['SvelteFlowModel'];
+export type SvelteFlowNode = components['schemas']['SvelteFlowNode'];
+export type SvelteFlowEdge = components['schemas']['SvelteFlowEdge'];
+export type Metadata = components['schemas']['Metadata'];
 
-export interface SvelteFlowEdge {
-	id: string;
-	source: string;
-	sourceHandle: string;
-	target: string;
-	targetHandle: string;
-}
+// Extract response types from operations
+export type CircuitListResponse = operations['circuits_list']['responses']['200']['content']['application/json'];
+export type CircuitCreateResponse = operations['circuits_create']['responses']['201']['content']['application/json'];
+export type CircuitRetrieveResponse = operations['circuits_retrieve']['responses']['200']['content']['application/json'];
+export type CircuitUpdateResponse = operations['circuits_update']['responses']['200']['content']['application/json'];
+export type CircuitPartialUpdateResponse = operations['circuits_partial_update']['responses']['200']['content']['application/json'];
 
-export interface SvelteFlowMetadata {
-	nodeCounter: number;
-	lastModified: string;
-}
-
-export interface SvelteFlowModel {
-	nodes: SvelteFlowNode[];
-	edges: SvelteFlowEdge[];
-	metadata: SvelteFlowMetadata;
-}
-
-export interface CreateCircuitRequest {
-	name: string;
-	description?: string;
-	svelte_flow_model?: {
-		nodes?: SvelteFlowNode[];
-		edges?: SvelteFlowEdge[];
-		metadata?: Partial<SvelteFlowMetadata>;
-	};
-}
-
-export interface UpdateCircuitRequest {
-	name?: string;
-	description?: string;
-	svelte_flow_model?: {
-		nodes?: SvelteFlowNode[];
-		edges?: SvelteFlowEdge[];
-		metadata?: Partial<SvelteFlowMetadata>;
-	};
-}
+// Request types using generated schemas
+export type CreateCircuitRequest = CircuitRequest;
+export type UpdateCircuitRequest = PatchedCircuitRequest;
 
 class ApiClient {
 	private baseUrl: string;
@@ -107,7 +64,7 @@ class ApiClient {
 
 	// Circuit CRUD operations
 	async getCircuits(): Promise<Circuit[]> {
-		const response = await this.request<{count: number, results: Circuit[]}>('/circuits/');
+		const response = await this.request<PaginatedCircuitList>('/circuits/');
 		return response.results || [];
 	}
 
@@ -136,11 +93,7 @@ class ApiClient {
 	}
 
 	// Helper method to update circuit with flow data
-	async updateCircuitWithFlowData(id: number, flowData: {
-		nodes?: SvelteFlowNode[];
-		edges?: SvelteFlowEdge[];
-		metadata?: Partial<SvelteFlowMetadata>;
-	}): Promise<Circuit> {
+	async updateCircuitWithFlowData(id: number, flowData: Partial<SvelteFlowModel>): Promise<Circuit> {
 		return this.request<Circuit>(`/circuits/${id}/`, {
 			method: 'PATCH',
 			body: JSON.stringify({

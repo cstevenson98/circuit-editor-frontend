@@ -45,15 +45,8 @@
 		try {
 			circuit = await apiClient.getCircuit(circuitId());
 			// Load flow data if it exists
-			if (
-				circuit.svelte_flow_model?.nodes &&
-				circuit.svelte_flow_model.edges
-			) {
-				circuitState.importCircuit({
-					nodes: circuit.svelte_flow_model.nodes,
-					edges: circuit.svelte_flow_model.edges,
-					metadata: circuit.svelte_flow_model.metadata,
-				});
+			if (circuit.svelte_flow_model) {
+				circuitState.importFromApi(circuit.svelte_flow_model);
 			}
 		} catch (err) {
 			error =
@@ -70,12 +63,12 @@
 
 		try {
 			saving = true;
-			// Export circuit data and save to server
-			const circuitData = circuitState.exportCircuit();
-			console.log("Saving circuit:", circuitData);
+			// Export circuit data using the new API conversion method
+			const apiModel = circuitState.exportToApi();
+			console.log("Saving circuit:", apiModel);
 
 			// Update flow data via API
-			await apiClient.updateCircuitWithFlowData(circuit.id, circuitData);
+			await apiClient.updateCircuitWithFlowData(circuit.id, apiModel);
 
 			alert("Circuit saved successfully!");
 		} catch (err) {
@@ -167,7 +160,7 @@
 				connectionMode={ConnectionMode.Loose}
 				defaultEdgeOptions={{
 					type: "step",
-					style: "stroke: #000000; stroke-width: 3px;",
+					// Remove static styling - colors now come from backend
 				}}
 				connectionLineType={ConnectionLineType.Step}
 				snapGrid={[20, 20]}
@@ -198,14 +191,12 @@
 {/if}
 
 <style>
-	/* Custom styling for SvelteFlow edges and connection lines */
-	:global(.svelte-flow__edge-path) {
-		stroke: #000000 !important;
-		stroke-width: 3px !important;
-	}
-
+	/* Custom styling for SvelteFlow connection lines (new connections being drawn) */
 	:global(.svelte-flow__connection-line) {
 		stroke: #000000 !important;
 		stroke-width: 3px !important;
 	}
+
+	/* Remove global edge styling - colors now come from backend API */
+	/* Individual edges will have their own style attribute with colors */
 </style>
