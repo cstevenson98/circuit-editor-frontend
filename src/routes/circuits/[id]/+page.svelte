@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from "$app/stores";
+	import { page } from "$app/state";
 	import { onMount } from "svelte";
 	import { apiClient, type Circuit } from "$lib/api/client";
 
@@ -11,7 +11,7 @@
 
 	// Get circuit ID from params - using rune
 	const circuitId = $derived(() => {
-		const id = $page.params.id;
+		const id = page.params.id;
 		if (!id) throw new Error("Circuit ID is required");
 		return parseInt(id, 10);
 	});

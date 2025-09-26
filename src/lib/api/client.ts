@@ -20,6 +20,7 @@ export type CircuitCreateResponse = operations['circuits_create']['responses']['
 export type CircuitRetrieveResponse = operations['circuits_retrieve']['responses']['200']['content']['application/json'];
 export type CircuitUpdateResponse = operations['circuits_update']['responses']['200']['content']['application/json'];
 export type CircuitPartialUpdateResponse = operations['circuits_partial_update']['responses']['200']['content']['application/json'];
+export type CircuitAnalyzeResponse = operations['circuits_analyze_create']['responses']['200']['content']['application/json'];
 
 // Request types using generated schemas
 export type CreateCircuitRequest = CircuitRequest;
@@ -98,6 +99,16 @@ class ApiClient {
 			method: 'PATCH',
 			body: JSON.stringify({
 				svelte_flow_model: flowData
+			}),
+		});
+	}
+
+	// Circuit analysis
+	async analyzeCircuit(id: number, analysisType: string = 'static'): Promise<CircuitAnalyzeResponse> {
+		return this.request<CircuitAnalyzeResponse>(`/circuits/${id}/analyze/`, {
+			method: 'POST',
+			body: JSON.stringify({
+				analysis_type: analysisType
 			}),
 		});
 	}

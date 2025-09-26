@@ -1,6 +1,6 @@
 import type { Node, Edge } from '@xyflow/svelte';
 import type { components } from '../api/api-types.js';
-import { apiClient } from '../api/client.js';
+import { apiClient, type CircuitAnalyzeResponse } from '../api/client.js';
 
 // Extract types from generated API types
 type SvelteFlowNode = components['schemas']['SvelteFlowNode'];
@@ -22,6 +22,11 @@ export interface CircuitNode extends Node {
 	data: {
 		type: ComponentType;
 		label?: string;
+		// Analysis results for visualization
+		current?: number;
+		voltage?: number;
+		leftVoltage?: number;
+		rightVoltage?: number;
 	};
 }
 
@@ -32,6 +37,9 @@ export class CircuitEditorState {
 	private _gridSize = 20; // Match the background grid size
 	private _circuit: Circuit | null = null;
 	private _saving = $state(false);
+	private _analyzing = $state(false);
+	private _analysisResults: CircuitAnalyzeResponse | null = $state(null);
+	private _showAnalysisResults = $state(false);
 
 	constructor() {}
 
@@ -358,6 +366,43 @@ export class CircuitEditorState {
 		return this._saving;
 	}
 
+	// Get analyzing state
+	get analyzing(): boolean {
+		return this._analyzing;
+	}
+
+	// Get analysis results
+	get analysisResults(): CircuitAnalyzeResponse | null {
+		return this._analysisResults;
+	}
+
+	// Get show analysis results state
+	get showAnalysisResults(): boolean {
+		return this._showAnalysisResults;
+	}
+
+	// Toggle analysis results visibility
+	toggleAnalysisResults(): void {
+		this._showAnalysisResults = !this._showAnalysisResults;
+	}
+
+	// Clear analysis results
+	clearAnalysisResults(): void {
+		this._analysisResults = null;
+		this._showAnalysisResults = false;
+		// Clear analysis data from nodes
+		this._nodes = this._nodes.map(node => ({
+			...node,
+			data: {
+				...node.data,
+				current: undefined,
+				voltage: undefined,
+				leftVoltage: undefined,
+				rightVoltage: undefined
+			}
+		}));
+	}
+
 	// Add a component to the circuit (public interface)
 	addComponent(componentType: ComponentType): string {
 		const nodeId = this.addComponentInternal(componentType, { x: 400, y: 300 });
@@ -392,29 +437,75 @@ export class CircuitEditorState {
 	}
 
 	// Analyze the circuit
-	analyzeCircuit(): void {
+	async analyzeCircuit(): Promise<void> {
 		if (!this._circuit) {
 			alert("No circuit loaded");
 			return;
 		}
 
-		// Validate circuit and send to analysis API
-		const validation = this.validateCircuit();
-		const circuitData = this.exportCircuit();
+		try {
+			this._analyzing = true;
+			
+			// First save the current circuit state
+			await this.saveCircuit();
 
-		console.log("Circuit validation:", validation);
-		console.log("Analyzing circuit:", circuitData);
+			// Validate circuit
+			const validation = this.validateCircuit();
+			console.log("Circuit validation:", validation);
 
-		if (!validation.isValid) {
-			alert(`Circuit has errors: ${validation.errors.join(", ")}`);
-			return;
+			if (!validation.isValid) {
+				alert(`Circuit has errors: ${validation.errors.join(", ")}`);
+				return;
+			}
+
+			if (validation.warnings.length > 0) {
+				console.warn("Circuit warnings:", validation.warnings);
+			}
+
+			// Perform analysis via API
+			const analysisResult = await apiClient.analyzeCircuit(this._circuit.id, 'static');
+			console.log("Analysis result:", analysisResult);
+
+			if (analysisResult.status === 'success') {
+				this._analysisResults = analysisResult;
+				this._showAnalysisResults = true;
+				
+				// Update nodes with analysis data
+				this._updateNodesWithAnalysisData(analysisResult);
+				
+				alert("Circuit analysis completed successfully!");
+			} else {
+				alert(`Analysis failed: ${analysisResult.message || 'Unknown error'}`);
+			}
+
+		} catch (error) {
+			console.error("Analysis error:", error);
+			alert(`Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		} finally {
+			this._analyzing = false;
 		}
+	}
 
-		if (validation.warnings.length > 0) {
-			console.warn("Circuit warnings:", validation.warnings);
-		}
-
-		// TODO: Send to analysis API when available
-		alert("Circuit analysis started! (Analysis API not yet implemented)");
+	// Update nodes with analysis data for visualization
+	private _updateNodesWithAnalysisData(analysisResult: CircuitAnalyzeResponse): void {
+		const { component_currents, component_voltages, handle_voltages } = analysisResult;
+		
+		this._nodes = this._nodes.map(node => {
+			const nodeId = node.id;
+			const current = component_currents?.[nodeId];
+			const voltage = component_voltages?.[nodeId];
+			const handleVoltage = handle_voltages?.[nodeId];
+			
+			return {
+				...node,
+				data: {
+					...node.data,
+					current: current ? Number(current.toFixed(3)) : undefined,
+					voltage: voltage ? Number(voltage.toFixed(3)) : undefined,
+					leftVoltage: handleVoltage?.left ? Number(handleVoltage.left.toFixed(3)) : undefined,
+					rightVoltage: handleVoltage?.right ? Number(handleVoltage.right.toFixed(3)) : undefined
+				}
+			};
+		});
 	}
 }

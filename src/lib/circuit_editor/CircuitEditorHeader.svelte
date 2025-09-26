@@ -68,10 +68,28 @@
 					</button>
 					<button
 						onclick={() => circuitState.analyzeCircuit()}
-						class="rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
+						disabled={circuitState.analyzing}
+						class="rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
 					>
-						Analyze
+						{circuitState.analyzing ? "Analyzing..." : "Analyze"}
 					</button>
+
+					{#if circuitState.analysisResults}
+						<button
+							onclick={() => circuitState.toggleAnalysisResults()}
+							class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+						>
+							{circuitState.showAnalysisResults
+								? "Hide Results"
+								: "Show Results"}
+						</button>
+						<button
+							onclick={() => circuitState.clearAnalysisResults()}
+							class="rounded-md bg-gray-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700"
+						>
+							Clear
+						</button>
+					{/if}
 				</div>
 
 				<!-- Component toolbar -->

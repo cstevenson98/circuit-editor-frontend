@@ -4,6 +4,11 @@
 	export let data: {
 		type: "voltage" | "resistor" | "capacitor" | "inductor";
 		label?: string;
+		// Analysis results for visualization
+		current?: number;
+		voltage?: number;
+		leftVoltage?: number;
+		rightVoltage?: number;
 	};
 
 	// Get the appropriate label for the component type
@@ -117,6 +122,40 @@
 			{data.label || getComponentLabel(data.type)}
 		</span>
 	</div>
+
+	<!-- Analysis results overlays -->
+	{#if data.leftVoltage !== undefined}
+		<!-- Left handle voltage -->
+		<div class="absolute -left-6 top-1/2 transform -translate-y-1/2">
+			<span
+				class="text-xs font-semibold text-blue-700 bg-blue-100 px-1 rounded border border-blue-300 shadow-sm"
+			>
+				{data.leftVoltage}V
+			</span>
+		</div>
+	{/if}
+
+	{#if data.rightVoltage !== undefined}
+		<!-- Right handle voltage -->
+		<div class="absolute -right-6 top-1/2 transform -translate-y-1/2">
+			<span
+				class="text-xs font-semibold text-blue-700 bg-blue-100 px-1 rounded border border-blue-300 shadow-sm"
+			>
+				{data.rightVoltage}V
+			</span>
+		</div>
+	{/if}
+
+	{#if data.current !== undefined}
+		<!-- Current through component -->
+		<div class="absolute -top-6 left-1/2 transform -translate-x-1/2">
+			<span
+				class="text-xs font-semibold text-red-700 bg-red-100 px-1 rounded border border-red-300 shadow-sm"
+			>
+				{data.current}A
+			</span>
+		</div>
+	{/if}
 
 	<!-- Right handle -->
 	<Handle

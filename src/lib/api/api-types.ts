@@ -60,6 +60,26 @@ export interface paths {
         patch: operations["circuits_partial_update"];
         trace?: never;
     };
+    "/api/circuits/{id}/analyze/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyze circuit
+         * @description Perform electrical analysis on the circuit and return voltages and currents for visualization
+         */
+        post: operations["circuits_analyze_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -374,6 +394,67 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Circuit"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    circuits_analyze_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this Circuit. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": unknown;
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        status?: string;
+                        message?: string;
+                        analysis_method?: string;
+                        node_voltages?: {
+                            [key: string]: number;
+                        };
+                        component_currents?: {
+                            [key: string]: number;
+                        };
+                        component_voltages?: {
+                            [key: string]: number;
+                        };
+                        handle_voltages?: {
+                            [key: string]: {
+                                left?: number;
+                                right?: number;
+                            };
+                        };
+                    };
                 };
             };
             400: {
